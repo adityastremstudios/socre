@@ -12,6 +12,8 @@ export default function Scoreboard() {
         name: p,
         kills: 0,
         eliminated: false,
+        survivalTime: 0,
+        running: true, // survival timer starts when match begins
       })),
     }))
   );
@@ -19,11 +21,31 @@ export default function Scoreboard() {
   const [matchTime, setMatchTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
 
-  // Timer logic
+  // Global match timer
   useEffect(() => {
     let interval: any;
     if (isRunning) {
       interval = setInterval(() => setMatchTime((t) => t + 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRunning]);
+
+  // Survival timers for each player
+  useEffect(() => {
+    let interval: any;
+    if (isRunning) {
+      interval = setInterval(() => {
+        setTeamData((prev) =>
+          prev.map((team) => ({
+            ...team,
+            players: team.players.map((p) =>
+              p.running && !p.eliminated
+                ? { ...p, survivalTime: p.survivalTime + 1 }
+                : p
+            ),
+          }))
+        );
+      }, 1000);
     }
     return () => clearInterval(interval);
   }, [isRunning]);
@@ -48,12 +70,11 @@ export default function Scoreboard() {
     return `${m}:${s}`;
   };
 
-  // Update player (kills / elimination)
-  const updatePlayer = (
+  // Update player (kills / elimination / revive)
+  const togglePlayerElim = (
     teamId: number,
     playerIndex: number,
-    field: string,
-    value: any
+    value: boolean
   ) => {
     setTeamData((prev) =>
       prev.map((team) =>
@@ -61,11 +82,54 @@ export default function Scoreboard() {
           ? {
               ...team,
               players: team.players.map((player, i) =>
-                i === playerIndex ? { ...player, [field]: value } : player
+                i === playerIndex
+                  ? { ...player, eliminated: value, running: !value }
+                  : player
               ),
               eliminated: team.players.every((pl, i) =>
                 i === playerIndex ? value : pl.eliminated
               ),
+            }
+          : team
+      )
+    );
+  };
+
+  // Update kills
+  const updatePlayerKills = (
+    teamId: number,
+    playerIndex: number,
+    delta: number
+  ) => {
+    setTeamData((prev) =>
+      prev.map((team) =>
+        team.id === teamId
+          ? {
+              ...team,
+              players: team.players.map((player, i) =>
+                i === playerIndex
+                  ? { ...player, kills: Math.max(0, player.kills + delta) }
+                  : player
+              ),
+            }
+          : team
+      )
+    );
+  };
+
+  // Team elimination toggle
+  const toggleTeamElim = (teamId: number, value: boolean) => {
+    setTeamData((prev) =>
+      prev.map((team) =>
+        team.id === teamId
+          ? {
+              ...team,
+              eliminated: value,
+              players: team.players.map((p) => ({
+                ...p,
+                eliminated: value,
+                running: !value,
+              })),
             }
           : team
       )
@@ -92,7 +156,7 @@ export default function Scoreboard() {
     });
   };
 
-  // Auto sort when teams are eliminated
+  // Auto sort on elimination
   useEffect(() => {
     setTeamData((prev) => {
       const alive = prev.filter((t) => !t.eliminated);
@@ -150,10 +214,7 @@ export default function Scoreboard() {
           const teamKills = team.players.reduce((s, p) => s + p.kills, 0);
 
           return (
-            <div
-              key={team.id}
-              className="border rounded-lg p-4 bg-white shadow"
-            >
+            <div key={team.id} className="border rounded-lg p-4 bg-white shadow">
               {/* Team Header */}
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center space-x-3">
@@ -172,15 +233,7 @@ export default function Scoreboard() {
                     <input
                       type="checkbox"
                       checked={team.eliminated}
-                      onChange={(e) =>
-                        setTeamData((prev) =>
-                          prev.map((t) =>
-                            t.id === team.id
-                              ? { ...t, eliminated: e.target.checked }
-                              : t
-                          )
-                        )
-                      }
+                      onChange={(e) => toggleTeamElim(team.id, e.target.checked)}
                     />
                     <span className="text-sm">Elim</span>
                   </label>
@@ -208,13 +261,16 @@ export default function Scoreboard() {
                     key={i}
                     className="flex justify-between items-center border-b pb-1"
                   >
-                    <span>{player.name}</span>
+                    <span>
+                      {player.name}{" "}
+                      <span className="text-xs text-gray-500">
+                        ({formatTime(player.survivalTime)})
+                      </span>
+                    </span>
                     <div className="flex items-center space-x-2">
                       <button
                         className="px-2 bg-green-300 rounded"
-                        onClick={() =>
-                          updatePlayer(team.id, i, "kills", player.kills + 1)
-                        }
+                        onClick={() => updatePlayerKills(team.id, i, +1)}
                         disabled={player.eliminated}
                       >
                         +
@@ -222,14 +278,7 @@ export default function Scoreboard() {
                       <span>{player.kills}</span>
                       <button
                         className="px-2 bg-red-300 rounded"
-                        onClick={() =>
-                          updatePlayer(
-                            team.id,
-                            i,
-                            "kills",
-                            Math.max(0, player.kills - 1)
-                          )
-                        }
+                        onClick={() => updatePlayerKills(team.id, i, -1)}
                         disabled={player.eliminated}
                       >
                         -
@@ -239,12 +288,7 @@ export default function Scoreboard() {
                           type="checkbox"
                           checked={player.eliminated}
                           onChange={(e) =>
-                            updatePlayer(
-                              team.id,
-                              i,
-                              "eliminated",
-                              e.target.checked
-                            )
+                            togglePlayerElim(team.id, i, e.target.checked)
                           }
                         />
                         <span className="text-sm">Elim</span>
