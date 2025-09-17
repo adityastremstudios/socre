@@ -8,7 +8,7 @@ export default function Scoreboard() {
     teams.map((t) => ({
       ...t,
       eliminated: false,
-      players: t.players.map((p) => ({
+      players: t.players.map((p: string) => ({
         name: p,
         kills: 0,
         eliminated: false,
@@ -48,7 +48,13 @@ export default function Scoreboard() {
     return `${m}:${s}`;
   };
 
-  const updatePlayer = (teamId: number, playerIndex: number, field: string, value: any) => {
+  // Update player (kills / elimination)
+  const updatePlayer = (
+    teamId: number,
+    playerIndex: number,
+    field: string,
+    value: any
+  ) => {
     setTeamData((prev) =>
       prev.map((team) =>
         team.id === teamId
@@ -65,6 +71,35 @@ export default function Scoreboard() {
       )
     );
   };
+
+  // Manual reorder
+  const moveTeam = (index: number, direction: "up" | "down") => {
+    setTeamData((prev) => {
+      const newTeams = [...prev];
+      if (direction === "up" && index > 0) {
+        [newTeams[index - 1], newTeams[index]] = [
+          newTeams[index],
+          newTeams[index - 1],
+        ];
+      }
+      if (direction === "down" && index < newTeams.length - 1) {
+        [newTeams[index], newTeams[index + 1]] = [
+          newTeams[index + 1],
+          newTeams[index],
+        ];
+      }
+      return newTeams;
+    });
+  };
+
+  // Auto sort when teams are eliminated
+  useEffect(() => {
+    setTeamData((prev) => {
+      const alive = prev.filter((t) => !t.eliminated);
+      const eliminated = prev.filter((t) => t.eliminated);
+      return [...alive, ...eliminated];
+    });
+  }, [teamData.map((t) => t.eliminated).join(",")]);
 
   return (
     <div className="p-6">
@@ -134,12 +169,34 @@ export default function Scoreboard() {
                 <div className="flex items-center space-x-3">
                   <div className="font-bold">{teamKills} Kills</div>
                   <label className="flex items-center space-x-1">
-                    <input type="checkbox" checked={team.eliminated} readOnly />
+                    <input
+                      type="checkbox"
+                      checked={team.eliminated}
+                      onChange={(e) =>
+                        setTeamData((prev) =>
+                          prev.map((t) =>
+                            t.id === team.id
+                              ? { ...t, eliminated: e.target.checked }
+                              : t
+                          )
+                        )
+                      }
+                    />
                     <span className="text-sm">Elim</span>
                   </label>
                   <div className="flex flex-col">
-                    <button className="px-2 py-1 bg-gray-200 rounded">▲</button>
-                    <button className="px-2 py-1 bg-gray-200 rounded mt-1">▼</button>
+                    <button
+                      className="px-2 py-1 bg-gray-200 rounded"
+                      onClick={() => moveTeam(idx, "up")}
+                    >
+                      ▲
+                    </button>
+                    <button
+                      className="px-2 py-1 bg-gray-200 rounded mt-1"
+                      onClick={() => moveTeam(idx, "down")}
+                    >
+                      ▼
+                    </button>
                   </div>
                 </div>
               </div>
@@ -182,7 +239,12 @@ export default function Scoreboard() {
                           type="checkbox"
                           checked={player.eliminated}
                           onChange={(e) =>
-                            updatePlayer(team.id, i, "eliminated", e.target.checked)
+                            updatePlayer(
+                              team.id,
+                              i,
+                              "eliminated",
+                              e.target.checked
+                            )
                           }
                         />
                         <span className="text-sm">Elim</span>
