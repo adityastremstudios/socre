@@ -19,7 +19,7 @@ export default function Scoreboard() {
   const [matchTime, setMatchTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
 
-  // Timer
+  // Timer logic
   useEffect(() => {
     let interval: any;
     if (isRunning) {
@@ -48,7 +48,7 @@ export default function Scoreboard() {
     return `${m}:${s}`;
   };
 
-  const updatePlayer = (teamId, playerIndex, field, value) => {
+  const updatePlayer = (teamId: number, playerIndex: number, field: string, value: any) => {
     setTeamData((prev) =>
       prev.map((team) =>
         team.id === teamId
@@ -81,5 +81,120 @@ export default function Scoreboard() {
           </div>
           <div>
             <p className="text-sm text-gray-300">Total Kills</p>
-            <p className="text-xl font-bold
+            <p className="text-xl font-bold">{totalKills}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-300">Total Players</p>
+            <p className="text-xl font-bold">{totalPlayers}</p>
+          </div>
+        </div>
 
+        <div className="flex items-center space-x-3">
+          <p className="text-lg font-mono">{formatTime(matchTime)}</p>
+          <button
+            onClick={() => setIsRunning(!isRunning)}
+            className="bg-blue-500 px-4 py-2 rounded"
+          >
+            {isRunning ? "Pause" : "Start"}
+          </button>
+          <button
+            onClick={() => {
+              setIsRunning(false);
+              setMatchTime(0);
+            }}
+            className="bg-red-500 px-4 py-2 rounded"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {/* Teams Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {teamData.map((team, idx) => {
+          const teamKills = team.players.reduce((s, p) => s + p.kills, 0);
+
+          return (
+            <div
+              key={team.id}
+              className="border rounded-lg p-4 bg-white shadow"
+            >
+              {/* Team Header */}
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center space-x-3">
+                  <span className="font-bold text-xl">#{idx + 1}</span>
+                  <img
+                    src={team.logo}
+                    alt="logo"
+                    className="w-10 h-10 object-cover rounded"
+                  />
+                  <h2 className="font-semibold">{team.name}</h2>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <div className="font-bold">{teamKills} Kills</div>
+                  <label className="flex items-center space-x-1">
+                    <input type="checkbox" checked={team.eliminated} readOnly />
+                    <span className="text-sm">Elim</span>
+                  </label>
+                  <div className="flex flex-col">
+                    <button className="px-2 py-1 bg-gray-200 rounded">▲</button>
+                    <button className="px-2 py-1 bg-gray-200 rounded mt-1">▼</button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Players */}
+              <ul className="space-y-2">
+                {team.players.map((player, i) => (
+                  <li
+                    key={i}
+                    className="flex justify-between items-center border-b pb-1"
+                  >
+                    <span>{player.name}</span>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        className="px-2 bg-green-300 rounded"
+                        onClick={() =>
+                          updatePlayer(team.id, i, "kills", player.kills + 1)
+                        }
+                        disabled={player.eliminated}
+                      >
+                        +
+                      </button>
+                      <span>{player.kills}</span>
+                      <button
+                        className="px-2 bg-red-300 rounded"
+                        onClick={() =>
+                          updatePlayer(
+                            team.id,
+                            i,
+                            "kills",
+                            Math.max(0, player.kills - 1)
+                          )
+                        }
+                        disabled={player.eliminated}
+                      >
+                        -
+                      </button>
+                      <label className="flex items-center space-x-1">
+                        <input
+                          type="checkbox"
+                          checked={player.eliminated}
+                          onChange={(e) =>
+                            updatePlayer(team.id, i, "eliminated", e.target.checked)
+                          }
+                        />
+                        <span className="text-sm">Elim</span>
+                      </label>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
