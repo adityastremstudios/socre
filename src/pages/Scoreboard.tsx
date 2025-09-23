@@ -1,8 +1,10 @@
 import { useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { TeamsContext } from "../context/TeamsContext";
 
 export default function Scoreboard() {
   const { teams } = useContext(TeamsContext);
+  const navigate = useNavigate();
 
   const [teamData, setTeamData] = useState(
     teams.map((t) => ({
@@ -13,7 +15,7 @@ export default function Scoreboard() {
         kills: 0,
         eliminated: false,
         survivalTime: 0,
-        running: true, // survival timer starts when match begins
+        running: true, // survival timer starts
       })),
     }))
   );
@@ -30,7 +32,7 @@ export default function Scoreboard() {
     return () => clearInterval(interval);
   }, [isRunning]);
 
-  // Survival timers for each player
+  // Player survival timers
   useEffect(() => {
     let interval: any;
     if (isRunning) {
@@ -70,7 +72,7 @@ export default function Scoreboard() {
     return `${m}:${s}`;
   };
 
-  // Update player (kills / elimination / revive)
+  // Toggle individual player elimination
   const togglePlayerElim = (
     teamId: number,
     playerIndex: number,
@@ -117,7 +119,7 @@ export default function Scoreboard() {
     );
   };
 
-  // Team elimination toggle
+  // Toggle team elimination
   const toggleTeamElim = (teamId: number, value: boolean) => {
     setTeamData((prev) =>
       prev.map((team) =>
@@ -156,7 +158,7 @@ export default function Scoreboard() {
     });
   };
 
-  // Auto sort on elimination
+  // Auto sort eliminated teams down
   useEffect(() => {
     setTeamData((prev) => {
       const alive = prev.filter((t) => !t.eliminated);
@@ -167,6 +169,14 @@ export default function Scoreboard() {
 
   return (
     <div className="p-6">
+      {/* Back Button */}
+      <button
+        onClick={() => navigate("/")}
+        className="bg-gray-600 text-white px-4 py-2 rounded mb-4"
+      >
+        ⬅ Back to Teams
+      </button>
+
       {/* Top Bar */}
       <div className="bg-gray-900 text-white rounded-lg p-4 mb-6 flex flex-wrap justify-between items-center">
         <div className="flex space-x-6">
