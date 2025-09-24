@@ -15,7 +15,7 @@ type PlayerState = {
 type TeamState = {
   id: number;
   name: string;
-  logo?: string;
+  logo?: string; // ✅ still stored, not displayed
   eliminated: boolean;
   players: PlayerState[];
 };
@@ -163,7 +163,7 @@ export default function Scoreboard() {
                 players: t.players.map((p) => ({
                   ...p,
                   eliminated: isElim,
-                  running: !isElim, // resume timers if made alive again
+                  running: !isElim,
                 })),
               }
         )
@@ -193,7 +193,6 @@ export default function Scoreboard() {
     setMatchTime(0);
     setIsRunning(false);
 
-    // also clear Firebase node
     remove(ref(db, "matchData"));
   };
 
@@ -209,7 +208,7 @@ export default function Scoreboard() {
         </button>
       </div>
 
-      {/* ===== TOP BAR: Alive stats + timer ===== */}
+      {/* ===== TOP BAR ===== */}
       <div className="bg-gray-900 text-white rounded-lg p-4 mb-6 flex flex-wrap items-center justify-between">
         <div className="flex gap-6">
           <div>
@@ -251,22 +250,17 @@ export default function Scoreboard() {
 
           return (
             <div key={team.id} className="border rounded-lg p-4 bg-white shadow">
-              {/* Header row: position, logo+name, team status dropdown, manual arrows */}
+              {/* Team header */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <span className="font-bold text-lg">#{idx + 1}</span>
-                  {team.logo ? (
-                    <img src={team.logo} className="w-10 h-10 rounded object-cover" />
-                  ) : (
-                    <div className="w-10 h-10 rounded bg-gray-200" />
-                  )}
                   <h2 className="font-semibold">{team.name}</h2>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <div className="font-semibold">{teamKills} kills</div>
 
-                  {/* Team Status DROPDOWN */}
+                  {/* Team Status dropdown */}
                   <div className="flex items-center gap-2">
                     <label className="text-sm text-gray-600">Status</label>
                     <select
@@ -281,7 +275,7 @@ export default function Scoreboard() {
                     </select>
                   </div>
 
-                  {/* Manual position arrows */}
+                  {/* Manual arrows */}
                   <div className="flex flex-col">
                     <button
                       className="px-2 py-1 bg-gray-200 rounded"
@@ -299,7 +293,7 @@ export default function Scoreboard() {
                 </div>
               </div>
 
-              {/* Players */}
+              {/* Players list */}
               <ul className="space-y-2">
                 {team.players.map((p, i) => (
                   <li
