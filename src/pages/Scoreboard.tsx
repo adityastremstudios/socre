@@ -1,14 +1,30 @@
-import { useContext, useState, useEffect } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TeamsContext } from "../context/TeamsContext";
 import { ref, set, remove } from "firebase/database";
 import { db } from "../firebaseConfig";
 
+type PlayerState = {
+  name: string;
+  kills: number;
+  eliminated: boolean;
+  survivalTime: number;
+  running: boolean;
+};
+
+type TeamState = {
+  id: number;
+  name: string;
+  logo?: string;
+  eliminated: boolean;
+  players: PlayerState[];
+};
+
 export default function Scoreboard() {
   const { teams } = useContext(TeamsContext);
   const navigate = useNavigate();
 
-  const [teamData, setTeamData] = useState(
+  const [teamData, setTeamData] = useState<TeamState[]>(
     teams.map((t) => ({
       ...t,
       eliminated: false,
@@ -25,20 +41,18 @@ export default function Scoreboard() {
   const [matchTime, setMatchTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
 
-  // Match Timer
+  // ===== TIMER =====
   useEffect(() => {
-    let interval: any;
-    if (isRunning) {
-      interval = setInterval(() => setMatchTime((t) => t + 1), 1000);
-    }
-    return () => clearInterval(interval);
+    let id: any;
+    if (isRunning) id = setInterval(() => setMatchTime((s) => s + 1), 1000);
+    return () => clearInterval(id);
   }, [isRunning]);
 
-  // Player survival timers
+  // Per-player survival timers
   useEffect(() => {
-    let interval: any;
+    let id: any;
     if (isRunning) {
-      interval = setInterval(() => {
+      id = setInterval(() => {
         setTeamData((prev) =>
           prev.map((team) => ({
             ...team,
@@ -51,85 +65,123 @@ export default function Scoreboard() {
         );
       }, 1000);
     }
-    return () => clearInterval(interval);
+    return () => clearInterval(id);
   }, [isRunning]);
 
-  // ✅ Sync to Firebase
+  // ===== FIREBASE SYNC =====
   useEffect(() => {
-    const data = { teams: teamData, matchTime };
-    set(ref(db, "matchData"), data);
+    set(ref(db, "matchData"), { teams: teamData, matchTime });
   }, [teamData, matchTime]);
 
-  // --- Utility functions ---
+  // ===== TOP BAR STATS =====
+  const stats = useMemo(() => {
+    const totalPlayers = teamData.reduce((s, t) => s + t.players.length, 0);
+    const alivePlayers = teamData.reduce(
+      (s, t) => s + t.players.filter((p) => !p.eliminated).length,
+      0
+    );
+    const totalKills = teamData.reduce(
+      (s, t) => s + t.players.reduce((k, p) => k + p.kills, 0),
+      0
+    );
+    const aliveTeams = teamData.filter((t) =>
+      t.players.some((p) => !p.eliminated)
+    ).length;
+    return { totalPlayers, alivePlayers, totalKills, aliveTeams };
+  }, [teamData]);
+
   const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60).toString().padStart(2, "0");
-    const s = (secs % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
+    const mm = Math.floor(secs / 60).toString().padStart(2, "0");
+    const ss = (secs % 60).toString().padStart(2, "0");
+    return `${mm}:${ss}`;
   };
 
-  const togglePlayerElim = (teamId: number, playerIndex: number, value: boolean) => {
+  // ===== HELPERS =====
+  const autoPushEliminatedDown = (arr: TeamState[]) => {
+    const alive = arr.filter((t) => !t.eliminated);
+    const elim = arr.filter((t) => t.eliminated);
+    return [...alive, ...elim];
+  };
+
+  // Manual reorder (arrows)
+  const moveTeam = (index: number, dir: "up" | "down") => {
+    setTeamData((prev) => {
+      const next = [...prev];
+      if (dir === "up" && index > 0) {
+        [next[index - 1], next[index]] = [next[index], next[index - 1]];
+      }
+      if (dir === "down" && index < next.length - 1) {
+        [next[index], next[index + 1]] = [next[index + 1], next[index]];
+      }
+      return next;
+    });
+  };
+
+  // Player kills
+  const changeKills = (teamId: number, idx: number, delta: number) => {
     setTeamData((prev) =>
-      prev.map((team) =>
-        team.id === teamId
-          ? {
-              ...team,
-              players: team.players.map((player, i) =>
-                i === playerIndex
-                  ? { ...player, eliminated: value, running: !value }
-                  : player
-              ),
-              eliminated: team.players.every((pl, i) =>
-                i === playerIndex ? value : pl.eliminated
+      prev.map((t) =>
+        t.id !== teamId
+          ? t
+          : {
+              ...t,
+              players: t.players.map((p, i) =>
+                i === idx ? { ...p, kills: Math.max(0, p.kills + delta) } : p
               ),
             }
-          : team
       )
     );
   };
 
-  const updatePlayerKills = (teamId: number, playerIndex: number, delta: number) => {
+  // Player eliminate toggle
+  const togglePlayerElim = (teamId: number, idx: number, value: boolean) => {
     setTeamData((prev) =>
-      prev.map((team) =>
-        team.id === teamId
-          ? {
-              ...team,
-              players: team.players.map((player, i) =>
-                i === playerIndex
-                  ? { ...player, kills: Math.max(0, player.kills + delta) }
-                  : player
-              ),
-            }
-          : team
+      autoPushEliminatedDown(
+        prev.map((t) => {
+          if (t.id !== teamId) return t;
+          const players = t.players.map((p, i) =>
+            i === idx ? { ...p, eliminated: value, running: !value } : p
+          );
+          const allDead = players.every((p) => p.eliminated);
+          return { ...t, players, eliminated: allDead };
+        })
       )
     );
   };
 
-  const toggleTeamElim = (teamId: number, value: boolean) => {
+  // Team Status dropdown (Alive / Eliminated)
+  const changeTeamStatus = (teamId: number, status: "alive" | "eliminated") => {
+    const isElim = status === "eliminated";
     setTeamData((prev) =>
-      prev.map((team) =>
-        team.id === teamId
-          ? {
-              ...team,
-              eliminated: value,
-              players: team.players.map((p) => ({
-                ...p,
-                eliminated: value,
-                running: !value,
-              })),
-            }
-          : team
+      autoPushEliminatedDown(
+        prev.map((t) =>
+          t.id !== teamId
+            ? t
+            : {
+                ...t,
+                eliminated: isElim,
+                players: t.players.map((p) => ({
+                  ...p,
+                  eliminated: isElim,
+                  running: !isElim, // resume timers if made alive again
+                })),
+              }
+        )
       )
     );
   };
 
-  // ✅ Reset Match (clears kills, elim, timers but keeps teams)
+  // ===== RESET MATCH =====
   const resetMatch = () => {
-    if (!window.confirm("Are you sure you want to reset the match?")) return;
+    const ok = window.confirm(
+      "Are you sure you want to reset the match? This clears kills, eliminations, and timers."
+    );
+    if (!ok) return;
 
-    const resetTeams = teamData.map((team) => ({
-      ...team,
+    const reset = teamData.map((t) => ({
+      ...t,
       eliminated: false,
-      players: team.players.map((p) => ({
+      players: t.players.map((p) => ({
         ...p,
         kills: 0,
         eliminated: false,
@@ -137,18 +189,18 @@ export default function Scoreboard() {
         running: true,
       })),
     }));
-
-    setTeamData(resetTeams);
+    setTeamData(reset);
     setMatchTime(0);
     setIsRunning(false);
 
-    // Clear Firebase data
+    // also clear Firebase node
     remove(ref(db, "matchData"));
   };
 
   return (
     <div className="p-6">
-      <div className="flex space-x-3 mb-4">
+      {/* Nav */}
+      <div className="flex gap-3 mb-4">
         <button
           onClick={() => navigate("/")}
           className="bg-gray-600 text-white px-4 py-2 rounded"
@@ -157,49 +209,97 @@ export default function Scoreboard() {
         </button>
       </div>
 
-      {/* Timer + Controls */}
-      <div className="bg-gray-900 text-white rounded-lg p-4 mb-6 flex justify-between items-center">
-        <div className="text-lg font-mono">{formatTime(matchTime)}</div>
-        <div className="space-x-2">
+      {/* ===== TOP BAR: Alive stats + timer ===== */}
+      <div className="bg-gray-900 text-white rounded-lg p-4 mb-6 flex flex-wrap items-center justify-between">
+        <div className="flex gap-6">
+          <div>
+            <div className="text-xs text-gray-300">Alive Players</div>
+            <div className="text-xl font-bold">{stats.alivePlayers}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-300">Alive Teams</div>
+            <div className="text-xl font-bold">{stats.aliveTeams}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-300">Total Kills</div>
+            <div className="text-xl font-bold">{stats.totalKills}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-300">Total Players</div>
+            <div className="text-xl font-bold">{stats.totalPlayers}</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="text-lg font-mono">{formatTime(matchTime)}</div>
           <button
-            onClick={() => setIsRunning(!isRunning)}
+            onClick={() => setIsRunning((v) => !v)}
             className="bg-blue-500 px-4 py-2 rounded"
           >
             {isRunning ? "Pause" : "Start"}
           </button>
-          <button
-            onClick={resetMatch}
-            className="bg-yellow-500 px-4 py-2 rounded"
-          >
+          <button onClick={resetMatch} className="bg-yellow-500 px-4 py-2 rounded">
             Reset Match
           </button>
         </div>
       </div>
 
-      {/* Teams Grid */}
+      {/* ===== TEAMS GRID ===== */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {teamData.map((team, idx) => {
           const teamKills = team.players.reduce((s, p) => s + p.kills, 0);
+
           return (
-            <div
-              key={team.id}
-              className="border rounded-lg p-4 bg-white shadow"
-            >
-              <div className="flex justify-between mb-4 items-center">
-                <h2 className="font-bold text-lg">
-                  #{idx + 1} {team.name}
-                </h2>
-                <div>{teamKills} kills</div>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={team.eliminated}
-                    onChange={(e) => toggleTeamElim(team.id, e.target.checked)}
-                  />{" "}
-                  Team Elim
-                </label>
+            <div key={team.id} className="border rounded-lg p-4 bg-white shadow">
+              {/* Header row: position, logo+name, team status dropdown, manual arrows */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-lg">#{idx + 1}</span>
+                  {team.logo ? (
+                    <img src={team.logo} className="w-10 h-10 rounded object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded bg-gray-200" />
+                  )}
+                  <h2 className="font-semibold">{team.name}</h2>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="font-semibold">{teamKills} kills</div>
+
+                  {/* Team Status DROPDOWN */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-600">Status</label>
+                    <select
+                      className="border rounded px-2 py-1"
+                      value={team.eliminated ? "eliminated" : "alive"}
+                      onChange={(e) =>
+                        changeTeamStatus(team.id, e.target.value as "alive" | "eliminated")
+                      }
+                    >
+                      <option value="alive">Alive</option>
+                      <option value="eliminated">Eliminated</option>
+                    </select>
+                  </div>
+
+                  {/* Manual position arrows */}
+                  <div className="flex flex-col">
+                    <button
+                      className="px-2 py-1 bg-gray-200 rounded"
+                      onClick={() => moveTeam(idx, "up")}
+                    >
+                      ▲
+                    </button>
+                    <button
+                      className="px-2 py-1 bg-gray-200 rounded mt-1"
+                      onClick={() => moveTeam(idx, "down")}
+                    >
+                      ▼
+                    </button>
+                  </div>
+                </div>
               </div>
 
+              {/* Players */}
               <ul className="space-y-2">
                 {team.players.map((p, i) => (
                   <li
@@ -207,25 +307,30 @@ export default function Scoreboard() {
                     className="flex justify-between items-center border-b pb-1"
                   >
                     <span>
-                      {p.name} ({formatTime(p.survivalTime)})
+                      {p.name}{" "}
+                      <span className="text-xs text-gray-500">
+                        ({formatTime(p.survivalTime)})
+                      </span>
                     </span>
-                    <div className="flex space-x-2 items-center">
+
+                    <div className="flex items-center gap-2">
                       <button
-                        onClick={() => updatePlayerKills(team.id, i, +1)}
+                        className="px-2 bg-green-500 text-white rounded disabled:opacity-50"
+                        onClick={() => changeKills(team.id, i, +1)}
                         disabled={p.eliminated}
-                        className="bg-green-500 px-2 rounded text-white"
                       >
                         +
                       </button>
-                      <span>{p.kills}</span>
+                      <span className="w-6 text-center">{p.kills}</span>
                       <button
-                        onClick={() => updatePlayerKills(team.id, i, -1)}
+                        className="px-2 bg-red-500 text-white rounded disabled:opacity-50"
+                        onClick={() => changeKills(team.id, i, -1)}
                         disabled={p.eliminated}
-                        className="bg-red-500 px-2 rounded text-white"
                       >
                         -
                       </button>
-                      <label className="ml-2">
+
+                      <label className="ml-2 text-sm">
                         <input
                           type="checkbox"
                           checked={p.eliminated}
