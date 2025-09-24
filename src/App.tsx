@@ -1,7 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { TeamsProvider } from "./context/TeamsContext";
 import TeamsPage from "./pages/TeamsPage";
 import Scoreboard from "./pages/Scoreboard";
+import AliveStatus from "./pages/AliveStatus";
+import { TeamsProvider } from "./context/TeamsContext";
 
 function App() {
   return (
@@ -10,6 +11,7 @@ function App() {
         <Routes>
           <Route path="/" element={<TeamsPage />} />
           <Route path="/scoreboard" element={<Scoreboard />} />
+          <Route path="/alive-status" element={<AliveStatus />} />
         </Routes>
       </Router>
     </TeamsProvider>
@@ -17,4 +19,5 @@ function App() {
 }
 
 export default App;
+
 
