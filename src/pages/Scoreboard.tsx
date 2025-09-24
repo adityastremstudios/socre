@@ -1,7 +1,7 @@
 import { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { TeamsContext } from "../context/TeamsContext";
-import { ref, set } from "firebase/database";
+import { ref, set, remove } from "firebase/database";
 import { db } from "../firebaseConfig";
 
 export default function Scoreboard() {
@@ -54,7 +54,7 @@ export default function Scoreboard() {
     return () => clearInterval(interval);
   }, [isRunning]);
 
-  // ✅ Sync to Firebase on changes
+  // ✅ Sync to Firebase
   useEffect(() => {
     const data = { teams: teamData, matchTime };
     set(ref(db, "matchData"), data);
@@ -122,6 +122,30 @@ export default function Scoreboard() {
     );
   };
 
+  // ✅ Reset Match (clears kills, elim, timers but keeps teams)
+  const resetMatch = () => {
+    if (!window.confirm("Are you sure you want to reset the match?")) return;
+
+    const resetTeams = teamData.map((team) => ({
+      ...team,
+      eliminated: false,
+      players: team.players.map((p) => ({
+        ...p,
+        kills: 0,
+        eliminated: false,
+        survivalTime: 0,
+        running: true,
+      })),
+    }));
+
+    setTeamData(resetTeams);
+    setMatchTime(0);
+    setIsRunning(false);
+
+    // Clear Firebase data
+    remove(ref(db, "matchData"));
+  };
+
   return (
     <div className="p-6">
       <div className="flex space-x-3 mb-4">
@@ -131,14 +155,20 @@ export default function Scoreboard() {
       </div>
 
       {/* Timer + Controls */}
-      <div className="bg-gray-900 text-white rounded-lg p-4 mb-6 flex justify-between">
+      <div className="bg-gray-900 text-white rounded-lg p-4 mb-6 flex justify-between items-center">
         <div className="text-lg font-mono">{formatTime(matchTime)}</div>
         <div className="space-x-2">
-          <button onClick={() => setIsRunning(!isRunning)} className="bg-blue-500 px-4 py-2 rounded">
+          <button
+            onClick={() => setIsRunning(!isRunning)}
+            className="bg-blue-500 px-4 py-2 rounded"
+          >
             {isRunning ? "Pause" : "Start"}
           </button>
-          <button onClick={() => { setIsRunning(false); setMatchTime(0); }} className="bg-yellow-500 px-4 py-2 rounded">
-            Reset
+          <button
+            onClick={resetMatch}
+            className="bg-yellow-500 px-4 py-2 rounded"
+          >
+            Reset Match
           </button>
         </div>
       </div>
@@ -153,20 +183,42 @@ export default function Scoreboard() {
                 <h2 className="font-bold text-lg">#{idx + 1} {team.name}</h2>
                 <div>{teamKills} kills</div>
                 <label>
-                  <input type="checkbox" checked={team.eliminated} onChange={(e) => toggleTeamElim(team.id, e.target.checked)} />
+                  <input
+                    type="checkbox"
+                    checked={team.eliminated}
+                    onChange={(e) => toggleTeamElim(team.id, e.target.checked)}
+                  />
                   Team Elim
                 </label>
               </div>
 
               <ul className="space-y-2">
                 {team.players.map((p, i) => (
-                  <li key={i} className="flex justify-between">
+                  <li key={i} className="flex justify-between items-center">
                     <span>{p.name} ({formatTime(p.survivalTime)})</span>
-                    <div className="flex space-x-2">
-                      <button onClick={() => updatePlayerKills(team.id, i, +1)} disabled={p.eliminated}>+</button>
+                    <div className="flex space-x-2 items-center">
+                      <button
+                        onClick={() => updatePlayerKills(team.id, i, +1)}
+                        disabled={p.eliminated}
+                        className="bg-green-500 px-2 rounded"
+                      >
+                        +
+                      </button>
                       <span>{p.kills}</span>
-                      <button onClick={() => updatePlayerKills(team.id, i, -1)} disabled={p.eliminated}>-</button>
-                      <input type="checkbox" checked={p.eliminated} onChange={(e) => togglePlayerElim(team.id, i, e.target.checked)} /> Elim
+                      <button
+                        onClick={() => updatePlayerKills(team.id, i, -1)}
+                        disabled={p.eliminated}
+                        className="bg-red-500 px-2 rounded"
+                      >
+                        -
+                      </button>
+                      <label className="ml-2">
+                        <input
+                          type="checkbox"
+                          checked={p.eliminated}
+                          onChange={(e) => togglePlayerElim(team.id, i, e.target.checked)}
+                        /> Elim
+                      </label>
                     </div>
                   </li>
                 ))}
