@@ -15,9 +15,10 @@ type PlayerState = {
 type TeamState = {
   id: number;
   name: string;
-  logo?: string; // stored, but not displayed here
+  logo?: string;
   eliminated: boolean;
   players: PlayerState[];
+  originalIndex: number; // ✅ store original slot
 };
 
 export default function Scoreboard() {
@@ -25,9 +26,10 @@ export default function Scoreboard() {
   const navigate = useNavigate();
 
   const [teamData, setTeamData] = useState<TeamState[]>(
-    teams.map((t) => ({
+    teams.map((t, i) => ({
       ...t,
       eliminated: false,
+      originalIndex: i,
       players: t.players.map((p: string) => ({
         name: p,
         kills: 0,
@@ -97,12 +99,6 @@ export default function Scoreboard() {
   };
 
   // ===== HELPERS =====
-  const autoPushEliminatedDown = (arr: TeamState[]) => {
-    const alive = arr.filter((t) => !t.eliminated);
-    const elim = arr.filter((t) => t.eliminated);
-    return [...alive, ...elim];
-  };
-
   const moveTeam = (index: number, dir: "up" | "down") => {
     setTeamData((prev) => {
       const next = [...prev];
@@ -133,37 +129,44 @@ export default function Scoreboard() {
 
   const togglePlayerElim = (teamId: number, idx: number, value: boolean) => {
     setTeamData((prev) =>
-      autoPushEliminatedDown(
-        prev.map((t) => {
-          if (t.id !== teamId) return t;
-          const players = t.players.map((p, i) =>
-            i === idx ? { ...p, eliminated: value, running: !value } : p
-          );
-          const allDead = players.every((p) => p.eliminated);
-          return { ...t, players, eliminated: allDead };
-        })
-      )
+      prev.map((t) => {
+        if (t.id !== teamId) return t;
+        const players = t.players.map((p, i) =>
+          i === idx ? { ...p, eliminated: value, running: !value } : p
+        );
+        const allDead = players.every((p) => p.eliminated);
+        return { ...t, players, eliminated: allDead };
+      })
     );
   };
 
-  const changeTeamStatus = (teamId: number, status: boolean) => {
-    setTeamData((prev) =>
-      autoPushEliminatedDown(
-        prev.map((t) =>
-          t.id !== teamId
-            ? t
-            : {
-                ...t,
-                eliminated: status,
-                players: t.players.map((p) => ({
-                  ...p,
-                  eliminated: status,
-                  running: !status,
-                })),
-              }
-        )
-      )
-    );
+  // ✅ Team Elimination with restore position
+  const changeTeamStatus = (teamId: number, eliminated: boolean) => {
+    setTeamData((prev) => {
+      const updated = prev.map((t) =>
+        t.id !== teamId
+          ? t
+          : {
+              ...t,
+              eliminated,
+              players: t.players.map((p) => ({
+                ...p,
+                eliminated,
+                running: !eliminated,
+              })),
+            }
+      );
+
+      if (eliminated) {
+        // push eliminated team(s) to bottom
+        const alive = updated.filter((t) => !t.eliminated);
+        const elim = updated.filter((t) => t.eliminated);
+        return [...alive, ...elim];
+      } else {
+        // revive → restore order by originalIndex
+        return [...updated].sort((a, b) => a.originalIndex - b.originalIndex);
+      }
+    });
   };
 
   // ===== RESET MATCH =====
@@ -173,9 +176,10 @@ export default function Scoreboard() {
     );
     if (!ok) return;
 
-    const reset = teamData.map((t) => ({
+    const reset = teamData.map((t, i) => ({
       ...t,
       eliminated: false,
+      originalIndex: i,
       players: t.players.map((p) => ({
         ...p,
         kills: 0,
