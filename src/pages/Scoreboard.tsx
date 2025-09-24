@@ -15,10 +15,10 @@ type PlayerState = {
 type TeamState = {
   id: number;
   name: string;
-  logo?: string; // kept in data (used by overlay), not rendered here
+  logo?: string;
   eliminated: boolean;
   players: PlayerState[];
-  originalIndex: number; // initial slot (fallback)
+  originalIndex: number;
 };
 
 export default function Scoreboard() {
@@ -41,38 +41,27 @@ export default function Scoreboard() {
     }))
   );
 
-  // A persistent order of team IDs that respects manual ▲/▼ moves.
-  // We never mutate this on elimination/revive; we only change the "view".
-  const [teamOrder, setTeamOrder] = useState<number[]>(
-    teams.map((t) => t.id)
-  );
-
+  const [teamOrder, setTeamOrder] = useState<number[]>(teams.map((t) => t.id));
   const [matchTime, setMatchTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
 
-  // ===== Helpers to map id -> team and build display order =====
+  // ===== Helpers =====
   const teamById = (id: number) => teamData.find((t) => t.id === id)!;
 
   const getDisplayOrderedTeams = (): TeamState[] => {
     const ordered = teamOrder.map(teamById);
     const alive = ordered.filter((t) => !t.eliminated);
     const elim = ordered.filter((t) => t.eliminated);
-    // Alive first (in current manual order), then eliminated (also in manual order)
     return [...alive, ...elim];
   };
 
-  // ===== TIMER =====
-  useEffect(() => {
-    let id: any;
-    if (isRunning) id = setInterval(() => setMatchTime((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [isRunning]);
-
-  // Per-player survival timers
+  // ===== MATCH + PLAYER TIMERS =====
   useEffect(() => {
     let id: any;
     if (isRunning) {
       id = setInterval(() => {
+        setMatchTime((s) => s + 1); // global match timer
+
         setTeamData((prev) =>
           prev.map((team) => ({
             ...team,
@@ -88,7 +77,7 @@ export default function Scoreboard() {
     return () => clearInterval(id);
   }, [isRunning]);
 
-  // ===== FIREBASE SYNC (send display order so overlay matches scoreboard) =====
+  // ===== FIREBASE SYNC =====
   useEffect(() => {
     const ordered = getDisplayOrderedTeams();
     set(ref(db, "matchData"), { teams: ordered, matchTime });
@@ -118,14 +107,13 @@ export default function Scoreboard() {
     return `${mm}:${ss}`;
   };
 
-  // ===== Manual reorder within partitions (alive block or elim block) =====
+  // ===== Manual Reorder =====
   const moveTeam = (teamId: number, dir: "up" | "down") => {
     const ordered = getDisplayOrderedTeams();
     const aliveIds = ordered.filter((t) => !t.eliminated).map((t) => t.id);
     const elimIds = ordered.filter((t) => t.eliminated).map((t) => t.id);
 
     const isElim = teamById(teamId).eliminated;
-
     const arr = isElim ? elimIds : aliveIds;
     const idx = arr.indexOf(teamId);
     if (idx === -1) return;
@@ -140,7 +128,7 @@ export default function Scoreboard() {
     setTeamOrder(newOrder);
   };
 
-  // ===== Player kills +/- =====
+  // ===== Player Kills =====
   const changeKills = (teamId: number, playerIdx: number, delta: number) => {
     setTeamData((prev) =>
       prev.map((t) =>
@@ -156,7 +144,7 @@ export default function Scoreboard() {
     );
   };
 
-  // ===== Player eliminate / revive (resume timer on revive) =====
+  // ===== Player Elim/Revive =====
   const togglePlayerElim = (teamId: number, playerIdx: number, value: boolean) => {
     setTeamData((prev) =>
       prev.map((t) => {
@@ -168,10 +156,9 @@ export default function Scoreboard() {
         return { ...t, players, eliminated: allDead };
       })
     );
-    // NOTE: teamOrder unchanged; display layer handles bottoming out if team becomes eliminated
   };
 
-  // ===== Team elimination checkbox (revive restores last manual position) =====
+  // ===== Team Elim/Revive =====
   const changeTeamStatus = (teamId: number, eliminated: boolean) => {
     setTeamData((prev) =>
       prev.map((t) =>
@@ -188,7 +175,6 @@ export default function Scoreboard() {
             }
       )
     );
-    // teamOrder not changed here on purpose — keeps last manual position.
   };
 
   // ===== RESET MATCH =====
@@ -212,14 +198,13 @@ export default function Scoreboard() {
     }));
 
     setTeamData(reset);
-    setTeamOrder(reset.map((t) => t.id)); // reset manual order to initial
+    setTeamOrder(reset.map((t) => t.id));
     setMatchTime(0);
     setIsRunning(false);
 
     remove(ref(db, "matchData"));
   };
 
-  // Display array (alive first, then elim) derived from teamOrder
   const displayTeams = getDisplayOrderedTeams();
 
   return (
@@ -269,7 +254,7 @@ export default function Scoreboard() {
         </div>
       </div>
 
-      {/* ===== TEAMS GRID (alive first, then eliminated) ===== */}
+      {/* ===== TEAMS GRID ===== */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {displayTeams.map((team, visualIdx) => {
           const teamKills = team.players.reduce((s, p) => s + p.kills, 0);
@@ -291,7 +276,7 @@ export default function Scoreboard() {
                 <div className="flex items-center gap-3">
                   <div className="font-semibold">{teamKills} kills</div>
 
-                  {/* ✅ Team Elimination Checkbox */}
+                  {/* Team Elim */}
                   <label className="flex items-center gap-1 text-sm">
                     <input
                       type="checkbox"
@@ -301,19 +286,17 @@ export default function Scoreboard() {
                     Team Elim
                   </label>
 
-                  {/* Manual arrows (move within partition) */}
+                  {/* Manual arrows */}
                   <div className="flex flex-col">
                     <button
                       className="px-2 py-1 bg-gray-200 rounded"
                       onClick={() => moveTeam(team.id, "up")}
-                      title="Move up"
                     >
                       ▲
                     </button>
                     <button
                       className="px-2 py-1 bg-gray-200 rounded mt-1"
                       onClick={() => moveTeam(team.id, "down")}
-                      title="Move down"
                     >
                       ▼
                     </button>
@@ -321,7 +304,7 @@ export default function Scoreboard() {
                 </div>
               </div>
 
-              {/* Players list */}
+              {/* Players */}
               <ul className="space-y-2">
                 {team.players.map((p, i) => (
                   <li
