@@ -15,7 +15,7 @@ type PlayerState = {
 type TeamState = {
   id: number;
   name: string;
-  logo?: string; // ✅ still stored, not displayed
+  logo?: string; // stored, but not displayed here
   eliminated: boolean;
   players: PlayerState[];
 };
@@ -103,7 +103,6 @@ export default function Scoreboard() {
     return [...alive, ...elim];
   };
 
-  // Manual reorder (arrows)
   const moveTeam = (index: number, dir: "up" | "down") => {
     setTeamData((prev) => {
       const next = [...prev];
@@ -117,7 +116,6 @@ export default function Scoreboard() {
     });
   };
 
-  // Player kills
   const changeKills = (teamId: number, idx: number, delta: number) => {
     setTeamData((prev) =>
       prev.map((t) =>
@@ -133,7 +131,6 @@ export default function Scoreboard() {
     );
   };
 
-  // Player eliminate toggle
   const togglePlayerElim = (teamId: number, idx: number, value: boolean) => {
     setTeamData((prev) =>
       autoPushEliminatedDown(
@@ -149,9 +146,7 @@ export default function Scoreboard() {
     );
   };
 
-  // Team Status dropdown (Alive / Eliminated)
-  const changeTeamStatus = (teamId: number, status: "alive" | "eliminated") => {
-    const isElim = status === "eliminated";
+  const changeTeamStatus = (teamId: number, status: boolean) => {
     setTeamData((prev) =>
       autoPushEliminatedDown(
         prev.map((t) =>
@@ -159,11 +154,11 @@ export default function Scoreboard() {
             ? t
             : {
                 ...t,
-                eliminated: isElim,
+                eliminated: status,
                 players: t.players.map((p) => ({
                   ...p,
-                  eliminated: isElim,
-                  running: !isElim,
+                  eliminated: status,
+                  running: !status,
                 })),
               }
         )
@@ -260,20 +255,15 @@ export default function Scoreboard() {
                 <div className="flex items-center gap-3">
                   <div className="font-semibold">{teamKills} kills</div>
 
-                  {/* Team Status dropdown */}
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-gray-600">Status</label>
-                    <select
-                      className="border rounded px-2 py-1"
-                      value={team.eliminated ? "eliminated" : "alive"}
-                      onChange={(e) =>
-                        changeTeamStatus(team.id, e.target.value as "alive" | "eliminated")
-                      }
-                    >
-                      <option value="alive">Alive</option>
-                      <option value="eliminated">Eliminated</option>
-                    </select>
-                  </div>
+                  {/* ✅ Team Elimination Checkbox */}
+                  <label className="flex items-center gap-1 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={team.eliminated}
+                      onChange={(e) => changeTeamStatus(team.id, e.target.checked)}
+                    />
+                    Team Elim
+                  </label>
 
                   {/* Manual arrows */}
                   <div className="flex flex-col">
