@@ -149,7 +149,10 @@ export default function Scoreboard() {
   return (
     <div className="p-6">
       <div className="flex space-x-3 mb-4">
-        <button onClick={() => navigate("/")} className="bg-gray-600 text-white px-4 py-2 rounded">
+        <button
+          onClick={() => navigate("/")}
+          className="bg-gray-600 text-white px-4 py-2 rounded"
+        >
           ⬅ Back to Teams
         </button>
       </div>
@@ -178,29 +181,39 @@ export default function Scoreboard() {
         {teamData.map((team, idx) => {
           const teamKills = team.players.reduce((s, p) => s + p.kills, 0);
           return (
-            <div key={team.id} className="border rounded-lg p-4 bg-white shadow">
-              <div className="flex justify-between mb-4">
-                <h2 className="font-bold text-lg">#{idx + 1} {team.name}</h2>
+            <div
+              key={team.id}
+              className="border rounded-lg p-4 bg-white shadow"
+            >
+              <div className="flex justify-between mb-4 items-center">
+                <h2 className="font-bold text-lg">
+                  #{idx + 1} {team.name}
+                </h2>
                 <div>{teamKills} kills</div>
                 <label>
                   <input
                     type="checkbox"
                     checked={team.eliminated}
                     onChange={(e) => toggleTeamElim(team.id, e.target.checked)}
-                  />
+                  />{" "}
                   Team Elim
                 </label>
               </div>
 
               <ul className="space-y-2">
                 {team.players.map((p, i) => (
-                  <li key={i} className="flex justify-between items-center">
-                    <span>{p.name} ({formatTime(p.survivalTime)})</span>
+                  <li
+                    key={i}
+                    className="flex justify-between items-center border-b pb-1"
+                  >
+                    <span>
+                      {p.name} ({formatTime(p.survivalTime)})
+                    </span>
                     <div className="flex space-x-2 items-center">
                       <button
                         onClick={() => updatePlayerKills(team.id, i, +1)}
                         disabled={p.eliminated}
-                        className="bg-green-500 px-2 rounded"
+                        className="bg-green-500 px-2 rounded text-white"
                       >
                         +
                       </button>
@@ -208,7 +221,7 @@ export default function Scoreboard() {
                       <button
                         onClick={() => updatePlayerKills(team.id, i, -1)}
                         disabled={p.eliminated}
-                        className="bg-red-500 px-2 rounded"
+                        className="bg-red-500 px-2 rounded text-white"
                       >
                         -
                       </button>
@@ -216,8 +229,11 @@ export default function Scoreboard() {
                         <input
                           type="checkbox"
                           checked={p.eliminated}
-                          onChange={(e) => togglePlayerElim(team.id, i, e.target.checked)}
-                        /> Elim
+                          onChange={(e) =>
+                            togglePlayerElim(team.id, i, e.target.checked)
+                          }
+                        />{" "}
+                        Elim
                       </label>
                     </div>
                   </li>
