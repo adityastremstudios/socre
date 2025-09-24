@@ -15,7 +15,7 @@ export default function Scoreboard() {
         kills: 0,
         eliminated: false,
         survivalTime: 0,
-        running: true, // survival timer starts
+        running: true,
       })),
     }))
   );
@@ -51,6 +51,12 @@ export default function Scoreboard() {
     }
     return () => clearInterval(interval);
   }, [isRunning]);
+
+  // Save to localStorage whenever match state changes
+  useEffect(() => {
+    const data = { teams: teamData, matchTime };
+    localStorage.setItem("matchData", JSON.stringify(data));
+  }, [teamData, matchTime]);
 
   // Stats
   const totalKills = teamData.reduce(
@@ -349,4 +355,5 @@ export default function Scoreboard() {
     </div>
   );
 }
+
 
