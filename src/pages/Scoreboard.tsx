@@ -167,15 +167,50 @@ export default function Scoreboard() {
     });
   }, [teamData.map((t) => t.eliminated).join(",")]);
 
+  // Reset the match (with confirmation)
+  const resetMatch = () => {
+    const confirmed = window.confirm(
+      "Are you sure you want to reset the match? This will clear all kills, eliminations, and timers!"
+    );
+    if (!confirmed) return;
+
+    setIsRunning(false);
+    setMatchTime(0);
+
+    setTeamData((prev) =>
+      prev.map((team) => ({
+        ...team,
+        eliminated: false,
+        players: team.players.map((p) => ({
+          ...p,
+          kills: 0,
+          eliminated: false,
+          survivalTime: 0,
+          running: true,
+        })),
+      }))
+    );
+
+    localStorage.removeItem("matchData");
+  };
+
   return (
     <div className="p-6">
-      {/* Back Button */}
-      <button
-        onClick={() => navigate("/")}
-        className="bg-gray-600 text-white px-4 py-2 rounded mb-4"
-      >
-        ⬅ Back to Teams
-      </button>
+      {/* Back + Reset Buttons */}
+      <div className="flex space-x-3 mb-4">
+        <button
+          onClick={() => navigate("/")}
+          className="bg-gray-600 text-white px-4 py-2 rounded"
+        >
+          ⬅ Back to Teams
+        </button>
+        <button
+          onClick={resetMatch}
+          className="bg-red-600 text-white px-4 py-2 rounded"
+        >
+          🔄 Reset Match
+        </button>
+      </div>
 
       {/* Top Bar */}
       <div className="bg-gray-900 text-white rounded-lg p-4 mb-6 flex flex-wrap justify-between items-center">
@@ -211,9 +246,9 @@ export default function Scoreboard() {
               setIsRunning(false);
               setMatchTime(0);
             }}
-            className="bg-red-500 px-4 py-2 rounded"
+            className="bg-yellow-500 px-4 py-2 rounded"
           >
-            Reset
+            Reset Timer
           </button>
         </div>
       </div>
@@ -314,3 +349,4 @@ export default function Scoreboard() {
     </div>
   );
 }
+
