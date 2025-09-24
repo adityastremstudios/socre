@@ -29,10 +29,8 @@ export default function AliveStatus() {
       }
     };
 
-    // Initial load
     loadData();
 
-    // Listen for updates from Scoreboard
     const handler = (e: StorageEvent) => {
       if (e.key === "matchData" && e.newValue) {
         const parsed = JSON.parse(e.newValue);
@@ -51,64 +49,67 @@ export default function AliveStatus() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <h1 className="text-3xl font-bold mb-4">Alive Status</h1>
-      <p className="text-lg mb-6">Match Time: {formatTime(matchTime)}</p>
+    <div className="bg-transparent text-white min-h-screen p-4">
+      {/* Match Timer */}
+      <div className="text-center text-5xl font-bold mb-6">
+        ⏱ {formatTime(matchTime)}
+      </div>
 
-      <table className="w-full border-collapse text-center shadow-lg">
-        <thead className="bg-blue-900 text-white">
-          <tr>
-            <th className="p-2">#</th>
-            <th className="p-2">Team</th>
-            <th className="p-2">Alive Players</th>
-            <th className="p-2">FIN (Kills)</th>
-            <th className="p-2">TOTAL</th>
+      {/* Teams Ranking Table */}
+      <table className="w-full border-collapse text-center">
+        <thead>
+          <tr className="bg-black/60 text-xl">
+            <th className="p-3">#</th>
+            <th className="p-3">Team</th>
+            <th className="p-3">Alive</th>
+            <th className="p-3">Kills</th>
+            <th className="p-3">Total</th>
           </tr>
         </thead>
         <tbody>
           {teams.map((team, idx) => {
             const aliveCount = team.players.filter((p) => !p.eliminated).length;
             const totalKills = team.players.reduce((s, p) => s + p.kills, 0);
-            const totalScore = totalKills + aliveCount; // Example formula
+            const totalScore = totalKills + aliveCount; // example formula
 
             return (
               <tr
                 key={team.id}
-                className={idx % 2 === 0 ? "bg-gray-800" : "bg-gray-700"}
+                className="bg-black/40 text-2xl font-semibold"
               >
-                {/* Position */}
-                <td className="p-2 font-bold">{idx + 1}</td>
+                {/* Rank */}
+                <td className="p-3">{idx + 1}</td>
 
                 {/* Team name + logo */}
-                <td className="flex items-center space-x-2 justify-center p-2">
+                <td className="flex items-center justify-center space-x-3 p-3">
                   <img
                     src={team.logo}
                     alt="logo"
-                    className="w-8 h-8 rounded"
+                    className="w-10 h-10 rounded"
                   />
                   <span>{team.name}</span>
                 </td>
 
-                {/* Alive Player Bars */}
-                <td className="p-2">
+                {/* Alive players (bars) */}
+                <td className="p-3">
                   <div className="flex space-x-1 justify-center">
                     {team.players.map((p, i) => (
                       <div
                         key={i}
-                        title={`${p.name} (${p.kills} kills)`}
-                        className={`w-4 h-6 rounded ${
+                        className={`w-5 h-8 rounded ${
                           p.eliminated ? "bg-red-600" : "bg-green-400"
                         }`}
+                        title={`${p.name} (${p.kills} kills)`}
                       />
                     ))}
                   </div>
                 </td>
 
                 {/* Kills */}
-                <td className="p-2">{totalKills}</td>
+                <td className="p-3">{totalKills}</td>
 
                 {/* Total */}
-                <td className="p-2 font-bold text-teal-400">{totalScore}</td>
+                <td className="p-3 text-teal-400">{totalScore}</td>
               </tr>
             );
           })}
