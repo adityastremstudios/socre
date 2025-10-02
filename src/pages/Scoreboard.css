@@ -1,1 +1,9 @@
+*{
+  margin: 0;
+  padding: 0;
+}
+
+html, body{
+  background-color: #4169e1;
+}
 
