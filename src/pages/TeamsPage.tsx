@@ -1,6 +1,7 @@
 import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TeamsContext } from "../context/TeamsContext";
+import "./TeamPage.css";
 
 export default function TeamsPage() {
   const { teams, setTeams } = useContext(TeamsContext);
