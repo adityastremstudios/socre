@@ -209,12 +209,12 @@ export default function Scoreboard() {
   const displayTeams = getDisplayOrderedTeams();
 
   return (
-    <div className="p-6">
+    <div className="scoreboard">
       {/* Nav */}
-      <div className="flex gap-3 mb-4">
+      <div className="bttq">
         <button
           onClick={() => navigate("/")}
-          className="bg-gray-600 text-white px-4 py-2 rounded"
+          className="btt"
         >
           ⬅ Back to Teams
         </button>
