@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { TeamsContext } from "../context/TeamsContext";
 import { ref, set, remove } from "firebase/database";
 import { db } from "../firebaseConfig";
+import "./Scoreboard.css";
 
 type PlayerState = {
   name: string;
