@@ -1,1 +1,86 @@
+:root{
+  --gfx-text: #ffffff;
+  --gfx-muted: rgba(255,255,255,0.65);
+  --gfx-alive: #41e38a;
+  --gfx-elim: #ff5252;
+  --gfx-card-shadow: 0 10px 24px rgba(0,0,0,.35);
+}
+
+.gfx-bg {
+  width: 100vw;
+  height: 100vh;
+  color: var(--gfx-text);
+  background: url("/images/bg.png") center/cover no-repeat #000;
+}
+
+.gfx-grid {
+  display: grid;
+  /* auto-fit lets it stretch from 16 to 22+ gracefully */
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 18px;
+}
+
+.gfx-card {
+  position: relative;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: url("/images/team-card.png") center/cover no-repeat, rgba(0,0,0,0.35);
+  box-shadow: var(--gfx-card-shadow);
+  backdrop-filter: blur(4px);
+}
+
+.gfx-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.gfx-rank {
+  font-weight: 800;
+  font-size: 18px;
+  background: rgba(0,0,0,.4);
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.gfx-name {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.gfx-kills {
+  margin-left: auto;
+  font-weight: 700;
+}
+
+.gfx-players {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.gfx-bar {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--gfx-alive);
+}
+
+.gfx-bar.elim {
+  background: var(--gfx-elim);
+  opacity: .8;
+}
+
+.gfx-player-name {
+  font-size: 12px;
+  color: var(--gfx-muted);
+}
+
+.gfx-kill-chip {
+  font-size: 12px;
+  background: rgba(0,0,0,.45);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
 
