@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ref, onValue } from "firebase/database";
 import { db } from "../firebaseConfig";
+import "./AliveStatus.css";
 
 type Player = { name: string; eliminated: boolean; kills: number };
 type Team = { id: number; name: string; logo?: string; eliminated: boolean; players: Player[] };
