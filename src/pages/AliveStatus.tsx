@@ -77,7 +77,7 @@ export default function AliveStatus() {
                   <div key={i} className="flex items-center gap-2">
                     <div
                       className={`flex-1 h-4 rounded ${
-                        p.eliminated ? "bg-red-600/70" : "bg-green-400"
+                        p.eliminated ? "bg-yellow-600/70" : "bg-green-400"
                       }`}
                     />
                     <span className="text-sm">{p.name}</span>
