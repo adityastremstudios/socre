@@ -19,8 +19,9 @@ export default function AliveStatus() {
 
   return (
     <div>
+      {/* Header background */}
       <div className="heading-background-holder">
-        <img className="fix-heading" src="/images/fix_heading.png" alt="" width="278" height="15" />
+        <img className="fix-heading" src="/images/fix_heading.png" alt="heading" />
       </div>
 
       {Array.from({ length: 16 }).map((_, i) => {
@@ -30,38 +31,29 @@ export default function AliveStatus() {
         return (
           <div key={i} className="group-3">
             <div className="l-constrained group">
-              <img className="ranking" src="/images/ranking.png" alt="1" width="8" height="16" />
-              <img className="team-logo" src={team?.logo || "/images/team_logo.png"} alt="" width="34" height="33" />
+              {/* 🏅 Ranking as text */}
+              <span className="ranking-text">{i + 1}</span>
+
+              {/* 🖼️ Dynamic team logo */}
               <img
-                className="text"
-                src="/images/team_name.png"
-                alt={team?.name || "TEAM"}
-                width="59"
-                height="13"
-                title={team?.name || "TEAM"}
-              />
-              <img
-                className="team-kill"
-                src="/images/team_kill.png"
-                alt={String(totalKills)}
-                width="20"
-                height="13"
-                title={String(totalKills)}
+                className="team-logo"
+                src={team?.logo || "/images/team_logo.png"}
+                alt={team?.name || "Team Logo"}
               />
 
-              {/* Alive status bars */}
-              <div className="alive-bars-container" style={{ display: "flex", gap: "3px", marginTop: "4px" }}>
+              {/* 🧾 Team name as text */}
+              <span className="team-name-text">{team?.name || "TEAM NAME"}</span>
+
+              {/* 🔫 Total kills as text */}
+              <span className="team-kill-text">{totalKills}</span>
+
+              {/* 🟩 Alive bars */}
+              <div className="alive-bars-container">
                 {team?.players?.map((p, idx) => (
                   <div
                     key={idx}
                     className={`alive-bar ${p.eliminated ? "dead" : "alive"}`}
-                    style={{
-                      width: "20px",
-                      height: "6px",
-                      borderRadius: "2px",
-                      backgroundColor: p.eliminated ? "red" : "limegreen",
-                    }}
-                  />
+                  ></div>
                 ))}
               </div>
             </div>
