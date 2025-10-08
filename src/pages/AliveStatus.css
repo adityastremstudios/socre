@@ -1,86 +1,55 @@
-:root{
-  --gfx-text: #ffffff;
-  --gfx-muted: rgba(255,255,255,0.65);
-  --gfx-alive: #41e38a;
-  --gfx-elim: #ff5252;
-  --gfx-card-shadow: 0 10px 24px rgba(0,0,0,.35);
+.ranking-text {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
 }
 
-.gfx-bg {
-  width: 100vw;
-  height: 100vh;
-  color: var(--gfx-text);
-  background: url("/images/bg.png") center/cover no-repeat #000;
+.team-name-text {
+  position: absolute;
+  left: 60px;
+  top: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.7);
 }
 
-.gfx-grid {
-  display: grid;
-  /* auto-fit lets it stretch from 16 to 22+ gracefully */
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-  gap: 18px;
+.team-kill-text {
+  position: absolute;
+  right: 15px;
+  top: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #00ff9c;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.7);
 }
 
-.gfx-card {
-  position: relative;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: url("/images/team-card.png") center/cover no-repeat, rgba(0,0,0,0.35);
-  box-shadow: var(--gfx-card-shadow);
-  backdrop-filter: blur(4px);
-}
-
-.gfx-header {
+.alive-bars-container {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 4px;
+  position: absolute;
+  right: 20px;
+  bottom: 6px;
 }
 
-.gfx-rank {
-  font-weight: 800;
-  font-size: 18px;
-  background: rgba(0,0,0,.4);
-  padding: 4px 8px;
-  border-radius: 8px;
+.alive-bar {
+  width: 18px;
+  height: 6px;
+  border-radius: 2px;
+  transition: 0.3s;
 }
 
-.gfx-name {
-  font-weight: 700;
-  font-size: 18px;
+.alive-bar.alive {
+  background-color: #4aff7a;
 }
 
-.gfx-kills {
-  margin-left: auto;
-  font-weight: 700;
+.alive-bar.dead {
+  background-color: #ff5252;
+  opacity: 0.6;
 }
-
-.gfx-players {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 8px;
-}
-
-.gfx-bar {
-  height: 12px;
-  border-radius: 6px;
-  background: var(--gfx-alive);
-}
-
-.gfx-bar.elim {
-  background: var(--gfx-elim);
-  opacity: .8;
-}
-
-.gfx-player-name {
-  font-size: 12px;
-  color: var(--gfx-muted);
-}
-
-.gfx-kill-chip {
-  font-size: 12px;
-  background: rgba(0,0,0,.45);
-  padding: 2px 6px;
-  border-radius: 6px;
-}
-
